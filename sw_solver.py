@@ -1,3 +1,14 @@
+"""
+Filename: sw_solver.py
+Project: Smith-Waterman Local Pairwise Alignment (LPA)
+Description: Main entry point for the application. Orchestrates input parsing,
+              sequence alignment using Smith-Waterman, and output generation.
+Author: Kyle Kirchgessner
+Date: 2025-07-28
+Version: 1.0
+Dependencies: cli_auth, fna_tools, mtx_tools, sw_alignment
+"""
+
 from cli_auth import cli_auth
 import fna_tools as fna
 import mtx_tools as mtx

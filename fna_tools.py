@@ -1,3 +1,15 @@
+"""
+Filename: fna_tools.py
+Project: Smith-Waterman Local Pairwise Alignment (LPA)
+Description: Provides tools to parse input .fna files and write aligned
+              sequences and scores to output .fna files.
+Author: Kyle Kirchgessner
+Date: 2025-07-28
+Version: 1.0
+Dependencies: None (uses built-in Python I/O)
+"""
+
+
 def parse_fna(filepath):
     '''
     Description: 

@@ -1,3 +1,15 @@
+"""
+Filename: mtx_tools.py
+Project: Smith-Waterman Local Pairwise Alignment (LPA)
+Description: Parses and queries scoring matrices from .mtx files,
+              supporting both global and custom lookups.
+Author: Kyle Kirchgessner
+Date: 2025-07-28
+Version: 1.0
+Dependencies: numpy
+"""
+
+
 import numpy as np
 ROW_LABELS = []
 COL_LABELS = []

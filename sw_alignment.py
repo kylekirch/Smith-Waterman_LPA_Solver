@@ -1,3 +1,16 @@
+"""
+Filename: sw_alignment.py
+Project: Smith-Waterman Local Pairwise Alignment (LPA)
+Description: Implements the Smith-Waterman algorithm, including
+              score matrix initialization, scoring, and traceback logic
+              for local pairwise sequence alignment.
+Author: Kyle Kirchgessner
+Date: 2025-07-28
+Version: 1.0
+Dependencies: numpy, mtx_tools
+"""
+
+
 from mtx_tools import query_mtx
 import numpy as np
 

@@ -1,3 +1,15 @@
+"""
+Filename: cli_auth.py
+Project: Smith-Waterman Local Pairwise Alignment (LPA)
+Description: Handles command-line interface authentication and validates
+              input/output/scoring matrix file paths.
+Author: Kyle Kirchgessner
+Date: 2025-07-28
+Version: 1.0
+Dependencies: argparse, os, sys
+"""
+
+
 import argparse
 import os
 import sys
