@@ -1,7 +1,7 @@
 from cli_auth import cli_auth
 import fna_tools as fna
 import mtx_tools as mtx
-import nw_alignment as nw
+import sw_alignment as sw
 
 
 def main():
@@ -22,16 +22,16 @@ def main():
     sequence_1 = sequence_data[0][2]
     sequence_2 = sequence_data[1][2]
 
-  # perform needleman-wunsch alignment
-    score, sequence_1_aligned, sequence_2_aligned = nw.nw_alignment(
+  # perform smith-waterman local alignment
+    top_score, sequence_1_aligned, sequence_2_aligned = sw.sw_alignment(
         sequence_1, sequence_2, SCORING_MATRIX)
-    print('\n', sequence_1_aligned, '\n', sequence_2_aligned, '\n', score)
+    print('\n', sequence_1_aligned, '\n', sequence_2_aligned, '\n', top_score)
 
   # print results to output file
     sequence_1_id = sequence_data[0][0]
     sequence_2_id = sequence_data[1][0]
     fna.write_pairs(output_file, (sequence_1_id, sequence_1_aligned),
-                    (sequence_2_id, sequence_2_aligned), score)
+                    (sequence_2_id, sequence_2_aligned), top_score)
 
 
 if __name__ == "__main__":

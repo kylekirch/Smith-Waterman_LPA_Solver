@@ -2,43 +2,32 @@ from mtx_tools import query_mtx
 import numpy as np
 
 
-def nw_initialize_matrices(num_rows, num_cols, gap):
+def sw_initialize_matrices(num_rows, num_cols):
     '''
     Description:
-    Initializes the Needleman-Wunsch final score matrix and traceback matrix
+    Initializes the Smith-Waterman score and traceback matrices.
 
     IN:
     para1: desired number of rows; [int]
     para2: desired number of columns; [int]
-    para3: gap penalty [int]
-
     OUT:
-    return1: empty final score matrix, with only the first column and row filled with the default values [2d list]
-    return2: empty traaceback, with only the first column and row filled with the default traces [2d list]
+    return1: score matrix filled with 0s; [np.ndarray]
+    return2: traceback matrix filled with 'X'; [2D list]
     '''
 
-  # initialize the final scoring matrix
-    max_dim = max(num_cols, num_rows)
-    default_vals = [0]
-    default_score_matrix = []
-    default_traceback_matrix = []
-  # determine the set of possible default values that will fill the first row and first column
-    for index in range(max_dim):
-        default_vals.append(default_vals[index] + gap)
+    # fill first row with default values
+    score_matrix = [[0] * (num_cols + 1)]
+    traceback_matrix = [['X'] * (num_cols + 1)]
 
-  # initialize the first row of the scoring/traceback matrix with default values
-    default_score_matrix = [default_vals[:num_cols+1]]
-    default_traceback_matrix = [['D'] + ['L'] * (num_cols)]
+    # fill first column with default values
+    for _ in range(num_rows):
+        score_matrix.append([0])
+        traceback_matrix.append(['X'])
 
-  # initialize the first element of each row with its default value
-    for i in range(num_rows):
-        default_score_matrix.append([default_vals[i+1]])
-        default_traceback_matrix.append(['U'])
-
-    return (default_score_matrix, default_traceback_matrix)
+    return score_matrix, traceback_matrix
 
 
-def nw_traceback(sequence_1, sequence_2, traceback_matrix):
+def sw_traceback(sequence_1, sequence_2, top_score_location, traceback_matrix):
     '''
     Description:
     Performs a needleman-wunsch traceback
@@ -52,11 +41,9 @@ def nw_traceback(sequence_1, sequence_2, traceback_matrix):
     return1: the traced sequences (sequence_1_aligned, sequence_2_aligned); [tuple(2)]
     '''
 
-    # initialize the starting position as the last element in the traceback matrix
-    num_cols = len(sequence_1)
-    num_rows = len(sequence_2)
-    row = num_rows
-    col = num_cols
+    # initialize the starting position as the position of the largest score
+    row = top_score_location[0]
+    col = top_score_location[1]
 
     # initialize the final paired sequences
     sequence_1_aligned = ""
@@ -83,6 +70,8 @@ def nw_traceback(sequence_1, sequence_2, traceback_matrix):
             sequence_1_aligned += sequence_1[col - 1]
             sequence_2_aligned += '-'
             col -= 1  # move left
+        elif direction == 'X':
+            break
         else:
             # if anything other than the allowed traces are detected, throw error
             raise TypeError("NW_TRACEBACK ERROR: UNKNOWN TRACE DETECTED")
@@ -95,7 +84,7 @@ def nw_traceback(sequence_1, sequence_2, traceback_matrix):
     return (sequence_1_aligned[::-1], sequence_2_aligned[::-1])
 
 
-def nw_alignment(sequence_1, sequence_2, score_matrix):
+def sw_alignment(sequence_1, sequence_2, score_matrix):
     '''
     Description:
     Performs needleman-wunsch pairwise alignment
@@ -110,11 +99,11 @@ def nw_alignment(sequence_1, sequence_2, score_matrix):
     return2: the traced sequences (sequence_1_aligned,sequence_2_aligned): [tuple(2)]
     '''
 
-  # ensure the existance of a global score table (eg. BLOSUM50, nucleotide)
+# ensure the existance of a global score table (eg. BLOSUM50, nucleotide)
     if (score_matrix is not None):
         score_table = score_matrix
-        global SCORE_MATRIX
-        SCORE_MATRIX = score_table
+        global SCORING_MATRIX
+        SCORING_MATRIX = score_table
     else:  # if no score table exists, throw error
         raise ValueError('NW_ALIGNMENT ERROR: No score matrix provided')
 
@@ -122,8 +111,11 @@ def nw_alignment(sequence_1, sequence_2, score_matrix):
     num_cols = len(sequence_1)
     num_rows = len(sequence_2)
     gap = query_mtx('A', '-')
-    final_score_matrix, traceback_matrix = nw_initialize_matrices(
-        num_rows, num_cols, gap)
+    final_score_matrix, traceback_matrix = sw_initialize_matrices(
+        num_rows, num_cols)
+
+  # initialize a top score
+    top_score = [0, (0, 0)]
 
   # perform needleman wunsch pairwise alignment
     for row in range(num_rows):
@@ -137,6 +129,17 @@ def nw_alignment(sequence_1, sequence_2, score_matrix):
             }
             # determine which option has the maximum value, store the value in the scores table, and store the trace(s) in the traceback table
             max_val = max(possible_scores.values())
+
+            # if the max value is less than 0, use 0 as the score, and 'X' as the trace
+            if (max_val <= 0):
+                max_val = 0
+                trace = 'X'
+                # add the max score and trace to their respective matrices
+                final_score_matrix[row].append(max_val)
+                traceback_matrix[row].append(trace)
+                continue
+            if (max_val >= top_score[0]):
+                top_score = (max_val, (row, col))
             for name, val in possible_scores.items():
                 if val == max_val:
                     trace = name  # in the case of multiple matching max values, it prioritizes the lowest index in the hashtable, in this case 'D'
@@ -148,24 +151,30 @@ def nw_alignment(sequence_1, sequence_2, score_matrix):
 
     scoreArray = np.array(final_score_matrix)
     tracebackArray = np.array(traceback_matrix)
-    sequence_1_final, sequence_2_final = nw_traceback(
-        sequence_1, sequence_2, tracebackArray)
-    score = scoreArray[-1, -1]
-    return (score, sequence_1_final, sequence_2_final)
+    top_score_location = top_score[1]
+
+    sequence_1_final, sequence_2_final = sw_traceback(
+        sequence_1, sequence_2, top_score_location, tracebackArray)
+    return (top_score[0], sequence_1_final, sequence_2_final)
+
+
+# debug
+ROW_LABELS = ['A', 'C', 'G', 'T', '-']
+COL_LABELS = ['A', 'C', 'G', 'T', '-']
+SCORING_MATRIX = [[2, -1, -1, -1, -2],
+                  [-1, 2, -1, -1, -2],
+                  [-1, -1, 2, -1, -2],
+                  [-1, -1, -1, 2, -2],
+                  [-2, -2, -2, -2, 2]]
 
 
 def main():
-    score_matrix = [[1, -1, -1, -1, -2],
-                    [-1, 1, -1, -1, -2],
-                    [-1, -1, 1, -1, -2],
-                    [-1, -1, -1, 1, -2],
-                    [-2, -2, -2, -2, 1]]
+
     sequence_1 = 'AGC'
     sequence_2 = 'AAAC'
-
-    score, sequence_1_paired, sequence_2_paired = nw_alignment(
-        sequence_1, sequence_2, score_matrix)
-    print('\n', sequence_1_paired, '\n', sequence_2_paired, '\n', score)
+    top_score, top_score_location, sequence_1_final, sequence_2_final = sw_alignment(
+        sequence_1, sequence_2, SCORING_MATRIX)
+    print(top_score, top_score_location, sequence_1_final, sequence_2_final)
 
 
 if __name__ == "__main__":
